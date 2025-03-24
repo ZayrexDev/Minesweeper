@@ -1,4 +1,8 @@
-
+import org.fusesource.jansi.Ansi;
+import org.fusesource.jansi.Ansi.Color;
+import org.fusesource.jansi.Ansi.Erase;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -6,38 +10,28 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.Scanner;
 
-import org.fusesource.jansi.Ansi;
-import org.fusesource.jansi.Ansi.Color;
-import org.fusesource.jansi.Ansi.Erase;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-
 public class Main {
-    public static int w = 10;
-    public static int h = 10;
-    public static int mineCount = 10;
-
-    public static int x = 0;
-    public static int y = 0;
-
-    public static int[][] map;
-    public static boolean[][] rev;
-    public static boolean[][] mark;
-
-    public static int o = 0;
-    public static int m = 0;
-    public static long startTime;
-    public static long offsetTime = 0;
-
-    public final static Ansi a = Ansi.ansi();
-    public final static Scanner s = new Scanner(System.in);
-    public final static Random r = new Random();
-    public final static int[][] dPos = new int[][] { { 1, 0 }, { -1, 0 },
-            { 1, 1 }, { 1, -1 }, { -1, -1 }, { -1, 1 }, { 0, 1 }, { 0, -1 } };
-    public static Queue<Pos> q = new LinkedList<>();
+    final static Ansi a = Ansi.ansi();
+    final static Scanner s = new Scanner(System.in);
+    final static Random r = new Random();
+    final static int[][] dPos = new int[][]{{1, 0}, {-1, 0},
+            {1, 1}, {1, -1}, {-1, -1}, {-1, 1}, {0, 1}, {0, -1}};
+    static int w = 10;
+    static int h = 10;
+    static int mineCount = 10;
+    static int x = 0;
+    static int y = 0;
+    static int[][] map;
+    static boolean[][] rev;
+    static boolean[][] mark;
+    static int o = 0;
+    static int m = 0;
+    static long startTime;
+    static long offsetTime = 0;
+    static Queue<Pos> q = new LinkedList<>();
 
     public static void main(String[] args) throws IOException {
-        Terminal t = TerminalBuilder.builder()
+        final Terminal t = TerminalBuilder.builder()
                 .system(true)
                 .jna(true)
                 .nativeSignals(true)
@@ -45,10 +39,16 @@ public class Main {
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.print("\033[?25h");
+            System.out.print(a.reset());
+            try {
+                t.close();
+            } catch (IOException ignored) {
+
+            }
         }));
 
-        System.out.println(a.fgBrightBlue().bold() + " == Minesweeper == " + a.reset());
-        System.out.println(a.fgBrightCyan() +        "      by Zayrex " + a.reset());
+        System.out.println(a.reset().fgBrightBlue().bold() + " == Minesweeper == " + a.reset());
+        System.out.println(a.fgBrightCyan() + "      by Zayrex " + a.reset());
 
         do {
             System.out.print("Enter Size(Default=10x10):");
@@ -63,13 +63,13 @@ public class Main {
                     w = Integer.parseInt(split[0]);
                     h = Integer.parseInt(split[1]);
 
-                    if(w >= 10 && h >= 10) break;
+                    if (w >= 10 && h >= 10) break;
                 }
-            } catch (Exception e) {
-                
+            } catch (Exception ignored) {
+
             }
 
-            System.out.println(a.fgRed() + "Input invaild" + a.reset());
+            System.out.println(a.fgRed() + "Input invalid" + a.reset());
         } while (true);
 
         do {
@@ -81,12 +81,12 @@ public class Main {
 
             try {
                 mineCount = Integer.parseInt(in);
-                if(mineCount > 0) break;
-            } catch (Exception e) {
-                
+                if (mineCount > 0) break;
+            } catch (Exception ignored) {
+
             }
 
-            System.out.println(a.fgRed() + "Input invaild" + a.reset());
+            System.out.println(a.fgRed() + "Input invalid" + a.reset());
         } while (true);
 
         map = new int[h][w];
@@ -111,9 +111,9 @@ public class Main {
                     continue;
                 int c = 0;
 
-                for (int k = 0; k < dPos.length; k++) {
-                    int di = i + dPos[k][0];
-                    int dj = j + dPos[k][1];
+                for (int[] dPo : dPos) {
+                    int di = i + dPo[0];
+                    int dj = j + dPo[1];
                     if (inRange(di, dj)) {
                         if (map[dj][di] == -1)
                             c++;
@@ -136,7 +136,7 @@ public class Main {
             var k = t.reader().read();
             if (k == 27) {
                 var k1 = t.reader().read();
-                if (k1 == 91) {
+                if (k1 == 91 || k1 == 79) {
                     // Direction keys
                     var k2 = t.reader().read();
                     // System.out.println(k2);
@@ -183,7 +183,7 @@ public class Main {
             switch (k) {
                 // z
                 case 122: {
-                    if (rev[y][x] == false && mark[y][x] == false) {
+                    if (!rev[y][x] && !mark[y][x]) {
                         if (map[y][x] == -1) {
                             // Set off bomb
                             renderLost();
@@ -202,9 +202,9 @@ public class Main {
                                 o++;
                                 if (map[cur.y][cur.x] != 0)
                                     continue;
-                                for (int di = 0; di < dPos.length; di++) {
-                                    int xt = cur.x + dPos[di][0];
-                                    int yt = cur.y + dPos[di][1];
+                                for (int[] dPo : dPos) {
+                                    int xt = cur.x + dPo[0];
+                                    int yt = cur.y + dPo[1];
                                     if (inRange(xt, yt) && map[yt][xt] != -1 && !rev[yt][xt]) {
                                         q.add(new Pos(xt, yt));
                                     }
@@ -221,7 +221,7 @@ public class Main {
 
                 // x
                 case 120:
-                    if (rev[y][x] == false) {
+                    if (!rev[y][x]) {
                         if (mark[y][x])
                             m--;
                         else
@@ -249,7 +249,7 @@ public class Main {
         final String str = "You won in " + (e - startTime - offsetTime) / 1000 + "s!";
         int m = (h + 3) / 2;
         System.out.print(a.cursor(m - 1, 1));
-        System.out.print(a.bgBrightCyan());
+        System.out.print(a.bgBrightGreen());
         for (int i = 0; i < w + 2; i++) {
             System.out.print(" ");
         }
@@ -294,8 +294,8 @@ public class Main {
 
     public static void render() {
         final long s = System.currentTimeMillis();
-        updateStat(); 
-        
+        updateStat();
+
         System.out.print(a.cursor(2, 1));
         System.out.print(a.bold().bgGreen());
         for (int i = 0; i < w + 2; i++) {
@@ -374,10 +374,10 @@ public class Main {
         System.out.print("You lost in " + (s - startTime - offsetTime) / 1000 + "s!");
     }
 
-    static record Pos(int x, int y) {
-    }
-
     public static boolean inRange(int x, int y) {
         return x >= 0 && x < w && y >= 0 && y < h;
+    }
+
+    record Pos(int x, int y) {
     }
 }
